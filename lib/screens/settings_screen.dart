@@ -163,7 +163,8 @@ class SettingsScreen extends StatelessWidget {
             height: 55,
             child: ElevatedButton.icon(
               onPressed: () async {
-                await AuthService.logout();
+                // 🛠️ 'AuthService.logout()' को बदलकर 'AuthService().signOut()' कर दिया गया है
+                await AuthService().signOut();
 
                 if (!context.mounted) return;
 

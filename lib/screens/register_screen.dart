@@ -56,12 +56,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     try {
 
-      await AuthService.signUp(
+      // 🛠️ यहाँ 'AuthService.signUp' को बदलकर 'AuthService().signUp' कर दिया गया है
+      await AuthService().signUp(
         email: emailController.text.trim(),
         password: passwordController.text.trim(),
       );
 
-      if (!mounted) return; // 🎯 यहाँ context.mounted की जगह केवल mounted किया गया है
+      if (!mounted) return;
 
       Navigator.pushReplacement(
         context,
@@ -72,7 +73,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     } catch (e) {
 
-      if (!mounted) return; // 🎯 यहाँ भी context.mounted की जगह केवल mounted किया गया है
+      if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

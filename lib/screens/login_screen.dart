@@ -158,7 +158,8 @@ class _LoginScreenState extends State<LoginScreen> {
                           }
 
                           try {
-                            await AuthService.login(
+                            // 🛠️ यहाँ 'login' को बदलकर 'signIn' कर दिया गया है
+                            await AuthService().signIn(
                               email: emailController.text.trim(),
                               password: passwordController.text.trim(),
                             );
