@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart'; // 🎯 1. Firebase Auth Import जोड़ा गया
+import 'package:firebase_auth/firebase_auth.dart';
 
 import '../services/auth_service.dart';
 import 'main_navigation_screen.dart';
@@ -18,7 +18,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final passwordController = TextEditingController();
   final confirmPasswordController = TextEditingController();
 
+  // 🎯 Form Key को Strict Type <FormState> के साथ अपग्रेड किया गया है
+  final _formKey = GlobalKey<FormState>();
+
   bool obscurePassword = true;
+  bool obscureConfirmPassword = true; // 🎯 Confirm Password के लिए अलग से State
   bool isLoading = false;
 
   @override
@@ -34,55 +38,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
     // 🎯 बटन दबाते ही कीबोर्ड हाइड हो जाएगा
     FocusScope.of(context).unfocus();
 
-    if (nameController.text.trim().isEmpty ||
-        emailController.text.trim().isEmpty ||
-        passwordController.text.trim().isEmpty ||
-        confirmPasswordController.text.trim().isEmpty) {
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Please fill all fields"),
-        ),
-      );
-      return;
-    }
-
-    // 🎯 Email Validation चेक
-    final email = emailController.text.trim();
-    final emailRegex = RegExp(
-      r'^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$',
-    );
-
-    if (!emailRegex.hasMatch(email)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Please enter a valid email address"),
-        ),
-      );
-      return;
-    }
-
-    // 🎯 Password Length चेक (कम से कम 8 अक्षर)
-    if (passwordController.text.length < 8) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            "Password must be at least 8 characters",
-          ),
-        ),
-      );
-      return;
-    }
-
-    // 🎯 Password Match चेक
-    if (passwordController.text !=
-        confirmPasswordController.text) {
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Passwords do not match"),
-        ),
-      );
+    // 🎯 Form Validation चेक (सारे TextFormField के Validators यहाँ एक साथ चलेंगे)
+    if (!_formKey.currentState!.validate()) {
       return;
     }
 
@@ -111,7 +68,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
       );
 
     } catch (e) {
-      // 🎯 2. Professional & Clean Exception Handling
       if (!mounted) return;
 
       String message = "Something went wrong";
@@ -170,84 +126,142 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
         padding: const EdgeInsets.all(20),
 
-        child: Column(
+        child: Form(
+          key: _formKey,
+          child: Column(
 
-          children: [
+            children: [
 
-            TextField(
-              controller: nameController,
-              decoration: const InputDecoration(
-                labelText: "Full Name",
-                border: OutlineInputBorder(),
-              ),
-            ),
-
-            const SizedBox(height: 20),
-
-            TextField(
-              controller: emailController,
-              decoration: const InputDecoration(
-                labelText: "Email",
-                border: OutlineInputBorder(),
-              ),
-            ),
-
-            const SizedBox(height: 20),
-
-            TextField(
-              controller: passwordController,
-              obscureText: obscurePassword,
-              decoration: InputDecoration(
-                labelText: "Password",
-                border: const OutlineInputBorder(),
-                suffixIcon: IconButton(
-                  icon: Icon(
-                    obscurePassword
-                        ? Icons.visibility
-                        : Icons.visibility_off,
-                  ),
-                  onPressed: () {
-                    setState(() {
-                      obscurePassword = !obscurePassword;
-                    });
-                  },
+              // 🎯 1. Full Name TextFormField
+              TextFormField(
+                controller: nameController,
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return "Please enter your full name";
+                  }
+                  return null;
+                },
+                decoration: const InputDecoration(
+                  labelText: "Full Name",
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.person_outline),
                 ),
               ),
-            ),
 
-            const SizedBox(height: 20),
+              const SizedBox(height: 20),
 
-            TextField(
-              controller: confirmPasswordController,
-              obscureText: obscurePassword,
-              decoration: const InputDecoration(
-                labelText: "Confirm Password",
-                border: OutlineInputBorder(),
+              // 🎯 2. Email TextFormField + Validator
+              TextFormField(
+                controller: emailController,
+                keyboardType: TextInputType.emailAddress,
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return "Please enter your email";
+                  }
+                  final emailRegex = RegExp(r'^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$');
+                  if (!emailRegex.hasMatch(value.trim())) {
+                    return "Please enter a valid email address";
+                  }
+                  return null;
+                },
+                decoration: const InputDecoration(
+                  labelText: "Email",
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.email_outlined),
+                ),
               ),
-            ),
 
-            const SizedBox(height: 30),
+              const SizedBox(height: 20),
 
-            SizedBox(
-              width: double.infinity,
-              height: 55,
-              child: ElevatedButton(
-                onPressed: isLoading ? null : register,
-                child: isLoading
-                    ? const SizedBox(
-                  width: 24,
-                  height: 24,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: Colors.white,
+              // 🎯 3. Password TextFormField + Validator
+              TextFormField(
+                controller: passwordController,
+                obscureText: obscurePassword,
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return "Please enter your password";
+                  }
+                  if (value.length < 8) {
+                    return "Password must be at least 8 characters";
+                  }
+                  return null;
+                },
+                decoration: InputDecoration(
+                  labelText: "Password",
+                  border: const OutlineInputBorder(),
+                  prefixIcon: const Icon(Icons.lock_outline),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      obscurePassword
+                          ? Icons.visibility
+                          : Icons.visibility_off,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        obscurePassword = !obscurePassword;
+                      });
+                    },
                   ),
-                )
-                    : const Text("Create Account"),
+                ),
               ),
-            ),
 
-          ],
+              const SizedBox(height: 20),
 
+              // 🎯 4. Confirm Password TextFormField + Validator
+              TextFormField(
+                controller: confirmPasswordController,
+                obscureText: obscureConfirmPassword,
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return "Please confirm your password";
+                  }
+                  if (value != passwordController.text) {
+                    return "Passwords do not match";
+                  }
+                  return null;
+                },
+                decoration: InputDecoration(
+                  labelText: "Confirm Password",
+                  border: const OutlineInputBorder(),
+                  prefixIcon: const Icon(Icons.lock_outline),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      obscureConfirmPassword
+                          ? Icons.visibility
+                          : Icons.visibility_off,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        obscureConfirmPassword = !obscureConfirmPassword;
+                      });
+                    },
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 30),
+
+              SizedBox(
+                width: double.infinity,
+                height: 55,
+                child: ElevatedButton(
+                  onPressed: isLoading ? null : register,
+                  child: isLoading
+                      ? const SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                      : const Text("Create Account"),
+                ),
+              ),
+
+            ],
+
+          ),
         ),
 
       ),
