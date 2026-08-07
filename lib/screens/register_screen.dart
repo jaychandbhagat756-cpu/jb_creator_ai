@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart'; // 🎯 1. Firebase Auth Import जोड़ा गया
 
 import '../services/auth_service.dart';
 import 'main_navigation_screen.dart';
@@ -18,6 +19,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final confirmPasswordController = TextEditingController();
 
   bool obscurePassword = true;
+  bool isLoading = false;
 
   @override
   void dispose() {
@@ -29,6 +31,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   Future<void> register() async {
+    // 🎯 बटन दबाते ही कीबोर्ड हाइड हो जाएगा
+    FocusScope.of(context).unfocus();
 
     if (nameController.text.trim().isEmpty ||
         emailController.text.trim().isEmpty ||
@@ -43,6 +47,34 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return;
     }
 
+    // 🎯 Email Validation चेक
+    final email = emailController.text.trim();
+    final emailRegex = RegExp(
+      r'^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$',
+    );
+
+    if (!emailRegex.hasMatch(email)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Please enter a valid email address"),
+        ),
+      );
+      return;
+    }
+
+    // 🎯 Password Length चेक (कम से कम 8 अक्षर)
+    if (passwordController.text.length < 8) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            "Password must be at least 8 characters",
+          ),
+        ),
+      );
+      return;
+    }
+
+    // 🎯 Password Match चेक
     if (passwordController.text !=
         confirmPasswordController.text) {
 
@@ -54,12 +86,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return;
     }
 
-    try {
+    setState(() {
+      isLoading = true;
+    });
 
-      // 🛠️ यहाँ 'AuthService.signUp' को बदलकर 'AuthService().signUp' कर दिया गया है
+    try {
       await AuthService().signUp(
         email: emailController.text.trim(),
         password: passwordController.text.trim(),
+      );
+
+      // 🎯 Firebase में User का Full Name सेव करना
+      await AuthService().currentUser?.updateDisplayName(
+        nameController.text.trim(),
       );
 
       if (!mounted) return;
@@ -72,15 +111,47 @@ class _RegisterScreenState extends State<RegisterScreen> {
       );
 
     } catch (e) {
-
+      // 🎯 2. Professional & Clean Exception Handling
       if (!mounted) return;
+
+      String message = "Something went wrong";
+
+      if (e is FirebaseAuthException) {
+        switch (e.code) {
+          case 'email-already-in-use':
+            message = "This email is already registered.";
+            break;
+
+          case 'invalid-email':
+            message = "Please enter a valid email.";
+            break;
+
+          case 'weak-password':
+            message = "Password is too weak. Use at least 8 characters.";
+            break;
+
+          case 'network-request-failed':
+            message = "No internet connection. Please try again.";
+            break;
+
+          default:
+            message = e.message ?? "Registration failed.";
+        }
+      }
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(e.toString()),
+          content: Text(message),
+          behavior: SnackBarBehavior.floating,
         ),
       );
 
+    } finally {
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+      }
     }
 
   }
@@ -161,8 +232,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
               width: double.infinity,
               height: 55,
               child: ElevatedButton(
-                onPressed: register,
-                child: const Text("Create Account"),
+                onPressed: isLoading ? null : register,
+                child: isLoading
+                    ? const SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
+                )
+                    : const Text("Create Account"),
               ),
             ),
 
