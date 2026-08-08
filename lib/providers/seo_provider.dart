@@ -1,10 +1,8 @@
 import 'package:flutter/foundation.dart';
 
-// 🎯 ज़रूरी Imports (History के लिए)
 import '../models/prompt_model.dart';
-import '../services/history_service.dart';
-
 import '../models/seo_result.dart';
+import '../services/history_service.dart';
 import '../services/seo_service.dart';
 
 class SEOProvider extends ChangeNotifier {
@@ -12,64 +10,92 @@ class SEOProvider extends ChangeNotifier {
 
   SEOResult _result = SEOResult.empty();
 
-  String _lastPrompt = "";
+  String _lastPrompt = '';
 
   bool get isLoading => _isLoading;
 
   SEOResult get result => _result;
 
-  Future<void> generate(
-      String prompt,
-      ) async {
-    if (prompt.trim().isEmpty) return;
+  bool get hasResult => !_result.isEmpty;
 
-    _lastPrompt = prompt;
+  Future<void> generate(String prompt) async {
+    final cleanPrompt = prompt.trim();
+
+    if (cleanPrompt.isEmpty || _isLoading) {
+      return;
+    }
+
+    _lastPrompt = cleanPrompt;
 
     _isLoading = true;
     notifyListeners();
 
-    _result = await SEOService.generateSEO(
-      prompt,
-    );
-
-    // 🎯 Save to History
-    if (!_result.isEmpty) {
-      await HistoryService.addPrompt(
-        PromptModel(
-          title: "SEO Prompt",
-          prompt: '''
-Title:
-${_result.title}
-
-Description:
-${_result.description}
-
-Tags:
-${_result.tags}
-''',
-          createdAt: DateTime.now(),
-          isFavorite: false,
-        ),
+    try {
+      final result = await SEOService.generateSEO(
+        cleanPrompt,
       );
-    }
 
-    _isLoading = false;
-    notifyListeners();
+      _result = result;
+
+      if (!result.isEmpty) {
+        await HistoryService.addPrompt(
+          PromptModel(
+            title: 'SEO • $cleanPrompt',
+            prompt: _historyText(result),
+            createdAt: DateTime.now(),
+            isFavorite: false,
+          ),
+        );
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('SEOProvider error: $e');
+      }
+
+      _result = SEOResult.empty();
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
   }
 
   Future<void> regenerate() async {
-    if (_lastPrompt.isEmpty) return;
+    if (_lastPrompt.isEmpty || _isLoading) {
+      return;
+    }
 
     await generate(_lastPrompt);
   }
 
   void clear() {
-    _lastPrompt = "";
+    _lastPrompt = '';
     _result = SEOResult.empty();
 
     notifyListeners();
   }
 
-  bool get hasResult =>
-      !_result.isEmpty;
+  String _historyText(SEOResult result) {
+    return '''
+TITLE:
+${result.title}
+
+DESCRIPTION:
+${result.description}
+
+TAGS:
+${result.tags}
+
+HASHTAGS:
+${result.hashtags}
+
+KEYWORDS:
+${result.keywords}
+
+THUMBNAIL TEXT:
+${result.thumbnailText}
+
+PINNED COMMENT:
+${result.pinnedComment}
+'''.trim();
+  }
 }
