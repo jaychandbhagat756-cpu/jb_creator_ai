@@ -30,6 +30,7 @@ dependencies:
   image_gallery_saver_plus: ^4.0.1
   permission_handler: ^12.0.1
   path_provider: ^2.1.5
+  shared_preferences: ^2.5.3  # 🎯 Professional Dark Mode के लिए जोड़ा गया
 
   # Hive
   hive: ^2.2.3
