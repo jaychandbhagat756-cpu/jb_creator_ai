@@ -8,7 +8,7 @@ import 'models/prompt_model.dart';
 import 'models/project_model.dart'; // 🎯 ProjectModel Import जोड़ा गया
 
 import 'theme/app_theme.dart';
-import 'screens/login_screen.dart'; // 🎯 LoginScreen Import जोड़ा गया
+import 'screens/splash_screen.dart'; // 🎯 Step 2: SplashScreen Import जोड़ा गया
 
 import 'providers/chat_provider.dart';
 import 'providers/thumbnail_provider.dart';
@@ -76,7 +76,7 @@ class JBCreatorAI extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'JB Creator AI',
       theme: AppTheme.lightTheme,
-      home: const LoginScreen(), // 🎯 Ab app start hone par LoginScreen dikhega
+      home: const SplashScreen(), // 🎯 2. Ab app start hone par SplashScreen dikhega (Auto-Login check ke sath)
     );
   }
 }

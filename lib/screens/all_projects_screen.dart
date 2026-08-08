@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:share_plus/share_plus.dart';
 import '../models/project_model.dart';
-import 'project_details_screen.dart'; // 🎯 ProjectDetailsScreen इम्पोर्ट जोड़ा गया
+import 'project_details_screen.dart';
+import 'edit_project_screen.dart'; // 🎯 Edit Project Screen इम्पोर्ट जोड़ा गया
 
 class AllProjectsScreen extends StatefulWidget {
   const AllProjectsScreen({super.key});
@@ -29,7 +31,6 @@ class _AllProjectsScreenState extends State<AllProjectsScreen> {
       body: ValueListenableBuilder<Box<ProjectModel>>(
         valueListenable: Hive.box<ProjectModel>('projects').listenable(),
         builder: (context, box, _) {
-          // 🎯 Search Box हमेशा ऊपर दिखाने के लिए Column को बाहर रखा गया है
           final allProjects = box.values.toList().reversed.toList();
 
           final projects = allProjects
@@ -126,9 +127,13 @@ class _AllProjectsScreenState extends State<AllProjectsScreen> {
                                 break;
 
                               case 'edit':
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text("Edit Project (Coming Soon)"),
+                              // 🎯 Working Edit Screen Navigation
+                                await Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => EditProjectScreen(
+                                      project: project,
+                                    ),
                                   ),
                                 );
                                 break;
@@ -159,7 +164,6 @@ class _AllProjectsScreenState extends State<AllProjectsScreen> {
                                 );
 
                                 if (confirm == true) {
-                                  // 🎯 स्टेबल तरीके से Hive बॉक्स की की (key) के माध्यम से डिलीट करना
                                   final key = project.key;
                                   await box.delete(key);
 
@@ -175,9 +179,12 @@ class _AllProjectsScreenState extends State<AllProjectsScreen> {
                                 break;
 
                               case 'share':
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text("Share Feature Coming Soon"),
+                              // 🎯 Updated SharePlus API Implementation
+                                await SharePlus.instance.share(
+                                  ShareParams(
+                                    text:
+                                    'Project: ${project.name}\n\n'
+                                        'Description:\n${project.description}',
                                   ),
                                 );
                                 break;

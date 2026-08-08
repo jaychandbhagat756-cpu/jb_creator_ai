@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart'; // 🎯 Google Auth/Firebase Exceptions के लिए इम्पोर्ट
 import '../services/auth_service.dart';
 import '../widgets/premium_button.dart'; // 🎯 नया प्रीमियम बटन इम्पोर्ट
 import 'main_navigation_screen.dart';
 import 'register_screen.dart';
+import 'forgot_password_screen.dart'; // 🎯 Step 2: Forgot Password Screen Import जोड़ा गया
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -132,7 +134,13 @@ class _LoginScreenState extends State<LoginScreen> {
                         alignment: Alignment.centerRight,
                         child: TextButton(
                           onPressed: () {
-                            // आगे Forgot Password स्क्रीन जोड़ेंगे
+                            // 🎯 Step 3: Forgot Password Screen पर जाने के लिए नेविगेशन जोड़ा गया
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const ForgotPasswordScreen(),
+                              ),
+                            );
                           },
                           child: const Text("Forgot Password?"),
                         ),
@@ -158,7 +166,6 @@ class _LoginScreenState extends State<LoginScreen> {
                           }
 
                           try {
-                            // 🛠️ यहाँ 'login' को बदलकर 'signIn' कर दिया गया है
                             await AuthService().signIn(
                               email: emailController.text.trim(),
                               password: passwordController.text.trim(),
@@ -182,6 +189,43 @@ class _LoginScreenState extends State<LoginScreen> {
                             );
                           }
                         },
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Continue with Google Button
+                      OutlinedButton.icon(
+                        onPressed: () async {
+                          try {
+                            await AuthService().signInWithGoogle();
+
+                            if (!context.mounted) return;
+
+                            Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const MainNavigationScreen(),
+                              ),
+                            );
+                          } on FirebaseAuthException catch (e) {
+                            if (!context.mounted) return;
+
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(e.message ?? "Google Sign-In failed"),
+                              ),
+                            );
+                          } catch (e) {
+                            if (!context.mounted) return;
+
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(e.toString()),
+                              ),
+                            );
+                          }
+                        },
+                        icon: const Icon(Icons.login),
+                        label: const Text("Continue with Google"),
                       ),
                       const SizedBox(height: 20),
 

@@ -73,7 +73,6 @@ class _AIScriptScreenState extends State<AIScriptScreen> {
         centerTitle: true,
         backgroundColor: Colors.deepPurple,
         foregroundColor: Colors.white,
-        // 🎯 AppBar में Clear/Delete Button जोड़ा गया
         actions: [
           IconButton(
             icon: const Icon(Icons.delete_outline),
@@ -112,9 +111,12 @@ class _AIScriptScreenState extends State<AIScriptScreen> {
               ),
             ),
             const SizedBox(height: 10),
+
+            // TextField with MaxLength
             TextField(
               controller: topicController,
               maxLines: 4,
+              maxLength: 200,
               decoration: InputDecoration(
                 hintText: "Enter your topic, e.g., How to start a YouTube channel in 2026...",
                 border: OutlineInputBorder(
@@ -123,6 +125,8 @@ class _AIScriptScreenState extends State<AIScriptScreen> {
               ),
             ),
             const SizedBox(height: 20),
+
+            // Dropdown: Script Type (Using initialValue)
             DropdownButtonFormField<String>(
               initialValue: scriptType,
               decoration: InputDecoration(
@@ -144,6 +148,8 @@ class _AIScriptScreenState extends State<AIScriptScreen> {
               },
             ),
             const SizedBox(height: 15),
+
+            // Dropdown: Language (Using initialValue)
             DropdownButtonFormField<String>(
               initialValue: language,
               decoration: InputDecoration(
@@ -165,6 +171,8 @@ class _AIScriptScreenState extends State<AIScriptScreen> {
               },
             ),
             const SizedBox(height: 15),
+
+            // Dropdown: Tone (Using initialValue)
             DropdownButtonFormField<String>(
               initialValue: tone,
               decoration: InputDecoration(
@@ -186,6 +194,8 @@ class _AIScriptScreenState extends State<AIScriptScreen> {
               },
             ),
             const SizedBox(height: 15),
+
+            // Dropdown: Duration (Using initialValue)
             DropdownButtonFormField<String>(
               initialValue: duration,
               decoration: InputDecoration(
@@ -208,7 +218,7 @@ class _AIScriptScreenState extends State<AIScriptScreen> {
             ),
             const SizedBox(height: 25),
 
-            // 🎯 मानक GenerateButton का उपयोग
+            // Generate Button
             GenerateButton(
               text: "Generate Script",
               isLoading: isGenerating,
@@ -218,10 +228,11 @@ class _AIScriptScreenState extends State<AIScriptScreen> {
                 final messenger = ScaffoldMessenger.of(context);
                 FocusScope.of(context).unfocus();
 
-                if (topicController.text.trim().isEmpty) {
+                // Topic Validation (< 5 Characters Check)
+                if (topicController.text.trim().length < 5) {
                   messenger.showSnackBar(
                     const SnackBar(
-                      content: Text("Please enter topic"),
+                      content: Text("Please enter at least 5 characters for the topic"),
                     ),
                   );
                   return;
@@ -233,15 +244,18 @@ class _AIScriptScreenState extends State<AIScriptScreen> {
                   isFavorite = false;
                 });
 
+                // Professional AI Prompt Format
                 final prompt = '''
-Create a professional YouTube script.
+You are an expert YouTube Script Writer.
+Generate an original script.
 
 Topic: ${topicController.text}
-
 Script Type: $scriptType
 Language: $language
 Tone: $tone
 Duration: $duration
+CTA: Included
+SEO Friendly: Yes
 
 Write a complete, engaging script with:
 - Hook
@@ -269,7 +283,6 @@ Write a complete, engaging script with:
                       SnackBar(content: Text(result)),
                     );
                   } else {
-                    // 🎯 पहले Hive में सेव करें फिर Success Message दिखाएं
                     await HistoryService.addPrompt(
                       PromptModel(
                         title: topicController.text,
@@ -331,7 +344,7 @@ Write a complete, engaging script with:
                       ),
                       const SizedBox(height: 20),
 
-                      // 🎯 Favorite, Share & Copy Buttons Row
+                      // Favorite & Share Buttons
                       Row(
                         children: [
                           Expanded(
