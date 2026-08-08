@@ -14,7 +14,8 @@ class AIMusicScreen extends StatefulWidget {
 }
 
 class _AIMusicScreenState extends State<AIMusicScreen> {
-  final TextEditingController _controller = TextEditingController();
+  final TextEditingController _controller =
+  TextEditingController();
 
   @override
   void dispose() {
@@ -22,7 +23,9 @@ class _AIMusicScreenState extends State<AIMusicScreen> {
     super.dispose();
   }
 
-  Future<void> _generate(MusicPromptProvider provider) async {
+  Future<void> _generate(
+      MusicPromptProvider provider,
+      ) async {
     FocusScope.of(context).unfocus();
 
     final prompt = _controller.text.trim();
@@ -64,12 +67,17 @@ class _AIMusicScreenState extends State<AIMusicScreen> {
               ),
             ],
           ),
-
           body: SafeArea(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+              padding: const EdgeInsets.fromLTRB(
+                16,
+                16,
+                16,
+                24,
+              ),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
+                crossAxisAlignment:
+                CrossAxisAlignment.stretch,
                 children: [
                   const Text(
                     'Create Professional Music Prompts',
@@ -78,12 +86,11 @@ class _AIMusicScreenState extends State<AIMusicScreen> {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-
                   const SizedBox(height: 8),
-
                   Text(
-                    'Describe your song and generate a detailed prompt '
-                        'for AI music generators like Suno AI and Udio.',
+                    'Describe your song and generate a detailed '
+                        'prompt for AI music generators like Suno AI '
+                        'and Udio.',
                     style: TextStyle(
                       fontSize: 14,
                       color: Theme.of(context)
@@ -91,22 +98,18 @@ class _AIMusicScreenState extends State<AIMusicScreen> {
                           .onSurfaceVariant,
                     ),
                   ),
-
                   const SizedBox(height: 20),
-
                   PromptBox(
                     controller: _controller,
                     maxLength: 1000,
                     hintText:
                     'Describe your song...\n\n'
                         'Example:\n'
-                        'A romantic 90s Bollywood song with emotional '
-                        'lyrics, soft piano, flute, warm strings and '
-                        'male vocals.',
+                        'A romantic 90s Bollywood song with '
+                        'emotional lyrics, soft piano, flute, '
+                        'warm strings and male vocals.',
                   ),
-
                   const SizedBox(height: 16),
-
                   GenerateButton(
                     text: provider.isLoading
                         ? 'Generating...'
@@ -116,9 +119,7 @@ class _AIMusicScreenState extends State<AIMusicScreen> {
                         ? null
                         : () => _generate(provider),
                   ),
-
                   const SizedBox(height: 24),
-
                   if (provider.isLoading)
                     const Padding(
                       padding: EdgeInsets.only(bottom: 20),
@@ -126,7 +127,6 @@ class _AIMusicScreenState extends State<AIMusicScreen> {
                         child: CircularProgressIndicator(),
                       ),
                     ),
-
                   MusicPromptResultCard(
                     result: provider.result,
                   ),
