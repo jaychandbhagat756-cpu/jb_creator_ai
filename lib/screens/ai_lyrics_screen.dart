@@ -47,6 +47,37 @@ class _AILyricsScreenState extends State<AILyricsScreen> {
     super.dispose();
   }
 
+  String _friendlyError(String error) {
+    switch (error) {
+      case "ERROR: API_KEY":
+        return "OpenAI API key is not configured.";
+
+      case "ERROR: INVALID_API_KEY":
+        return "Invalid OpenAI API key.";
+
+      case "ERROR: BILLING_OR_RATE_LIMIT":
+        return "OpenAI billing or rate-limit issue.";
+
+      case "ERROR: ACCESS_DENIED":
+        return "OpenAI access was denied.";
+
+      case "ERROR: TIMEOUT":
+        return "Request timed out. Please try again.";
+
+      case "ERROR: NETWORK":
+        return "Network error. Check your internet connection.";
+
+      case "ERROR: EMPTY_PROMPT":
+        return "Please enter the required information.";
+
+      case "ERROR: SERVER":
+        return "OpenAI server is temporarily unavailable.";
+
+      default:
+        return error;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -301,10 +332,18 @@ Requirements:
                     generatedLyrics = aiLyrics;
                   });
 
-                  // 🎯 Handle Error Message
-                  if (aiLyrics.startsWith("Error")) {
+                  // 🎯 Handle the standardized OpenAIService errors.
+                  final isError =
+                      aiLyrics.startsWith("ERROR:") ||
+                          aiLyrics.startsWith("❌") ||
+                          aiLyrics.startsWith("⚠️");
+
+                  if (isError) {
                     messenger.showSnackBar(
-                      SnackBar(content: Text(aiLyrics)),
+                      SnackBar(
+                        content: Text(_friendlyError(aiLyrics)),
+                        behavior: SnackBarBehavior.floating,
+                      ),
                     );
                   } else {
                     // 🎯 Save to History first with await

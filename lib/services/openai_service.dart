@@ -1,158 +1,251 @@
 import 'dart:async';
 import 'dart:convert';
-import 'package:flutter/foundation.dart'; // debugPrint और kDebugMode के लिए
+
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
+import '../config/api_config.dart';
+
 class OpenAIService {
-  // 🔑 1. API Key (⚠️ महत्वपूर्ण: प्ले स्टोर पर रिलीज़ करने से पहले इसे .env या अपने Backend से लोड करें)
-  static const String apiKey = "YOUR_ACTUAL_OPENAI_API_KEY_HERE";
+  OpenAIService._();
 
-  // 🌐 2. Base URL & Endpoints (💡 भविष्य में इमेज या अन्य APIs आसानी से जोड़ने के लिए)
-  static const String baseUrl = "https://api.openai.com/v1";
-  static final Uri baseUri = Uri.parse("$baseUrl/chat/completions");
-
-  // 🤖 3. Model Constant
-  static const String model = "gpt-4o-mini";
-
-  // 🌡️ 4. Temperature Constant
-  static const double temperature = 0.7;
-
-  // ⏱️ 5. Request Timeout Constant
-  static const Duration requestTimeout = Duration(seconds: 30);
-
-  // 💬 6. System Prompt Constant
-  static const String systemPrompt =
-      "You are JB Creator AI, a professional AI assistant for YouTube creators, music creators, thumbnail design, image prompts, video prompts, SEO, scripts and lyrics. Provide clean, highly optimized, professional, and structured results.";
-
-  // ⚡ 7. Persistent HTTP Client
   static final http.Client _client = http.Client();
 
-  // 🧹 8. Dispose Method (⚠️ इसे केवल ऐप बंद होने पर कॉल करें)
-  static void dispose() {
-    _client.close();
-  }
+  static const String _model = 'gpt-4o-mini';
+  static const double _temperature = 0.7;
+  static const Duration _timeout = Duration(seconds: 45);
 
-  // 📋 9. Common Headers Getter
-  static Map<String, String> get headers => {
-    "Authorization": "Bearer $apiKey",
-    "Content-Type": "application/json; charset=utf-8",
+  static String get _apiKey => ApiConfig.apiKey.trim();
+
+  static Uri get _chatUri =>
+      Uri.parse('https://api.openai.com/v1/chat/completions');
+
+  static Map<String, String> get _headers => {
+    'Authorization': 'Bearer $_apiKey',
+    'Content-Type': 'application/json; charset=utf-8',
   };
 
-  // 🚀 General Text, Lyrics, SEO, Thumbnail & Image Prompts के लिए मास्टर फंक्शन
-  static Future<String> generateText(String prompt) async {
-    // 🛡️ 1. API Key Validation Check
-    if (apiKey.trim().isEmpty ||
-        apiKey == "YOUR_ACTUAL_OPENAI_API_KEY_HERE" ||
-        !apiKey.startsWith("sk-")) {
-      return "❌ OpenAI API Key is missing or invalid.";
+  static const String defaultSystemPrompt = '''
+You are JB Creator AI, a professional AI assistant for content creators.
+
+You help users with:
+• AI Chat
+• YouTube content
+• AI Thumbnail prompts
+• AI Image prompts
+• AI Video prompts
+• YouTube SEO
+• Video scripts
+• Lyrics
+• Music prompts
+• Creative writing
+
+Always provide clear, useful, professional and well-structured answers.
+
+When the user asks for content, give ready-to-use content whenever possible.
+
+Do not unnecessarily repeat the user's question.
+''';
+
+  static bool get hasValidApiKey {
+    if (_apiKey.isEmpty) return false;
+    if (_apiKey == 'YOUR_OPENAI_API_KEY') return false;
+    if (_apiKey.contains('YOUR_ACTUAL_OPENAI_API_KEY')) {
+      return false;
     }
 
-    // 🛡️ 2. Prompt Validation Check
+    return _apiKey.startsWith('sk-');
+  }
+
+  /// Simple text generation.
+  ///
+  /// Existing screens can continue using this method.
+  static Future<String> generateText(
+      String prompt, {
+        String? systemPrompt,
+      }) async {
     if (prompt.trim().isEmpty) {
-      return "❌ Prompt cannot be empty.";
+      return 'ERROR: EMPTY_PROMPT';
     }
 
-    // 💬 3. Structured Messages List
-    final List<Map<String, String>> messages = [
+    final messages = <Map<String, String>>[
       {
-        "role": "system",
-        "content": systemPrompt,
+        'role': 'system',
+        'content':
+        systemPrompt?.trim().isNotEmpty == true
+            ? systemPrompt!.trim()
+            : defaultSystemPrompt,
       },
       {
-        "role": "user",
-        "content": prompt,
-      }
+        'role': 'user',
+        'content': prompt.trim(),
+      },
     ];
 
-    // 📦 4. Request Body
-    final requestBodyMap = {
-      "model": model,
-      "messages": messages,
-      "temperature": temperature,
+    return generateConversation(messages);
+  }
+
+  /// Professional conversation API.
+  ///
+  /// This sends the previous relevant messages to OpenAI so the
+  /// AI can understand conversation context.
+  static Future<String> generateConversation(
+      List<Map<String, String>> messages, {
+        String? systemPrompt,
+      }) async {
+    if (!hasValidApiKey) {
+      return 'ERROR: API_KEY';
+    }
+
+    if (messages.isEmpty) {
+      return 'ERROR: EMPTY_PROMPT';
+    }
+
+    final List<Map<String, String>> finalMessages = [];
+
+    finalMessages.add({
+      'role': 'system',
+      'content':
+      systemPrompt?.trim().isNotEmpty == true
+          ? systemPrompt!.trim()
+          : defaultSystemPrompt,
+    });
+
+    for (final message in messages) {
+      final role = message['role'];
+      final content = message['content'];
+
+      if (role == null || content == null) {
+        continue;
+      }
+
+      if (content.trim().isEmpty) {
+        continue;
+      }
+
+      if (role != 'user' && role != 'assistant') {
+        continue;
+      }
+
+      finalMessages.add({
+        'role': role,
+        'content': content.trim(),
+      });
+    }
+
+    if (finalMessages.length <= 1) {
+      return 'ERROR: EMPTY_PROMPT';
+    }
+
+    final requestBody = {
+      'model': _model,
+      'messages': finalMessages,
+      'temperature': _temperature,
     };
 
     try {
       final response = await _client
           .post(
-        baseUri,
-        headers: headers,
-        body: jsonEncode(requestBodyMap),
+        _chatUri,
+        headers: _headers,
+        body: jsonEncode(requestBody),
       )
-          .timeout(requestTimeout);
+          .timeout(_timeout);
 
-      // 🔄 Status Code Handling
+      return _parseResponse(response);
+    } on TimeoutException {
+      return 'ERROR: TIMEOUT';
+    } catch (e, stackTrace) {
+      if (kDebugMode) {
+        debugPrint('OpenAI Service Error: $e');
+        debugPrint(stackTrace.toString());
+      }
+
+      return 'ERROR: NETWORK';
+    }
+  }
+
+  static String _parseResponse(http.Response response) {
+    final responseText =
+    utf8.decode(response.bodyBytes, allowMalformed: true);
+
+    if (response.statusCode != 200) {
+      if (kDebugMode) {
+        debugPrint(
+          'OpenAI API ${response.statusCode}: $responseText',
+        );
+      }
+
       switch (response.statusCode) {
-        case 200:
-          final String responseString = utf8.decode(response.bodyBytes);
-          final dynamic decodedData = jsonDecode(responseString);
-
-          if (decodedData is! Map<String, dynamic>) {
-            return "⚠️ Invalid response from OpenAI.";
-          }
-
-          final Map<String, dynamic> data = decodedData;
-
-          // 🛡️ 5. Safe Nested JSON Parsing
-          final List<dynamic>? choices = data["choices"] as List<dynamic>?;
-          if (choices != null && choices.isNotEmpty) {
-            final firstChoice = choices.first;
-
-            if (firstChoice is Map<String, dynamic>) {
-              final message = firstChoice["message"];
-
-              if (message is Map<String, dynamic>) {
-                final content = message["content"];
-
-                if (content is String) {
-                  return content.trim();
-                }
-              }
-            }
-          }
-          return "⚠️ Unexpected response format from OpenAI.";
-
         case 400:
-          return "⚠️ Invalid request sent to OpenAI.";
+          return 'ERROR: BAD_REQUEST';
 
         case 401:
-          return "❌ Invalid OpenAI API Key. Please check your key.";
+          return 'ERROR: INVALID_API_KEY';
 
         case 403:
-          return "❌ Access denied. Check your API permissions.";
+          return 'ERROR: ACCESS_DENIED';
 
         case 404:
-          return "⚠️ OpenAI endpoint not found.";
+          return 'ERROR: API_NOT_FOUND';
 
         case 429:
-          return "⚠️ Rate limit reached or billing unavailable. Please check your OpenAI usage and billing.";
+          return 'ERROR: BILLING_OR_RATE_LIMIT';
 
         case 500:
         case 501:
         case 502:
         case 503:
         case 504:
-          return "⚠️ OpenAI server is temporarily unavailable. Please try again later.";
+          return 'ERROR: SERVER';
 
         default:
-          if (kDebugMode) {
-            debugPrint("❌ OpenAI API Error Response (${response.statusCode}): ${response.body}");
-          }
-          return "⚠️ Request failed (${response.statusCode})\n${response.body}";
+          return 'ERROR: UNKNOWN';
       }
-    } on TimeoutException {
-      return "⚠️ Request timed out. Please check your internet connection and try again.";
-    } catch (e, stackTrace) {
+    }
+
+    try {
+      final decoded = jsonDecode(responseText);
+
+      if (decoded is! Map<String, dynamic>) {
+        return 'ERROR: INVALID_RESPONSE';
+      }
+
+      final choices = decoded['choices'];
+
+      if (choices is! List || choices.isEmpty) {
+        return 'ERROR: INVALID_RESPONSE';
+      }
+
+      final firstChoice = choices.first;
+
+      if (firstChoice is! Map<String, dynamic>) {
+        return 'ERROR: INVALID_RESPONSE';
+      }
+
+      final message = firstChoice['message'];
+
+      if (message is! Map<String, dynamic>) {
+        return 'ERROR: INVALID_RESPONSE';
+      }
+
+      final content = message['content'];
+
+      if (content is String && content.trim().isNotEmpty) {
+        return content.trim();
+      }
+
+      return 'ERROR: INVALID_RESPONSE';
+    } catch (e) {
       if (kDebugMode) {
-        debugPrint("❌ OpenAI Service Error: $e");
-        debugPrint(stackTrace.toString());
+        debugPrint('OpenAI JSON Parse Error: $e');
       }
-      return "⚠️ Unable to connect. Please check your internet connection.";
+
+      return 'ERROR: INVALID_RESPONSE';
     }
   }
 
-// 💡 आने वाले फीचर्स के लिए Placeholders
-// static Future<String> generateImage(String imagePrompt) async {
-//   // Uri.parse("$baseUrl/images/generations") का उपयोग करके भविष्य में जोड़ सकते हैं
-//   return "";
-// }
+  static void dispose() {
+    _client.close();
+  }
 }
