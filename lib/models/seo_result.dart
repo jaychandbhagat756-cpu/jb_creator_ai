@@ -6,6 +6,7 @@ class SEOResult {
   final String keywords;
   final String thumbnailText;
   final String pinnedComment;
+  final String error;
 
   const SEOResult({
     required this.title,
@@ -15,6 +16,7 @@ class SEOResult {
     required this.keywords,
     required this.thumbnailText,
     required this.pinnedComment,
+    this.error = "",
   });
 
   factory SEOResult.empty() {
@@ -26,8 +28,24 @@ class SEOResult {
       keywords: "",
       thumbnailText: "",
       pinnedComment: "",
+      error: "",
     );
   }
+
+  factory SEOResult.error(String message) {
+    return SEOResult(
+      title: "",
+      description: "",
+      tags: "",
+      hashtags: "",
+      keywords: "",
+      thumbnailText: "",
+      pinnedComment: "",
+      error: message,
+    );
+  }
+
+  bool get isError => error.trim().isNotEmpty;
 
   bool get isEmpty =>
       title.isEmpty &&
@@ -36,5 +54,6 @@ class SEOResult {
           hashtags.isEmpty &&
           keywords.isEmpty &&
           thumbnailText.isEmpty &&
-          pinnedComment.isEmpty;
+          pinnedComment.isEmpty &&
+          error.isEmpty;
 }

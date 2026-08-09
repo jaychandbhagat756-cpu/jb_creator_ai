@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import '../models/seo_result.dart';
 import '../services/openai_service.dart';
 
@@ -7,123 +5,161 @@ class SEOService {
   SEOService._();
 
   static Future<SEOResult> generateSEO(String prompt) async {
-    final cleanPrompt = prompt.trim();
-
-    if (cleanPrompt.isEmpty) {
-      return SEOResult.empty();
+    if (prompt.trim().isEmpty) {
+      return SEOResult.error("Please enter a video topic.");
     }
 
     final aiPrompt = '''
-You are a professional YouTube SEO expert working for JB Creator AI.
+You are a professional YouTube SEO Expert.
 
-Create a complete YouTube SEO package for the following video topic:
+Generate a complete YouTube SEO package in English.
 
-$cleanPrompt
+IMPORTANT:
+- Follow the exact section labels below.
+- Do not add extra section labels.
+- Keep each section separate.
+- TITLE must be one clickable SEO title.
+- DESCRIPTION must be a professional YouTube description.
+- TAGS must contain exactly 30 comma-separated tags.
+- HASHTAGS must contain exactly 10 hashtags.
+- KEYWORDS must contain exactly 20 comma-separated keywords.
+- THUMBNAIL must contain one short thumbnail text.
+- PINNED COMMENT must contain one professional pinned comment.
 
-Return ONLY valid JSON.
-Do not use Markdown.
-Do not use code fences.
-Do not add any explanation before or after the JSON.
+Use this exact format:
 
-Use exactly these keys:
+TITLE:
+[SEO optimized clickable title]
 
-{
-  "title": "One highly clickable SEO optimized YouTube title",
-  "description": "Professional YouTube description with a strong opening, useful context and natural keywords",
-  "tags": "30 comma-separated YouTube tags",
-  "hashtags": "10 relevant hashtags separated by spaces",
-  "keywords": "20 SEO keywords separated by commas",
-  "thumbnailText": "Short powerful thumbnail text, maximum 6 words",
-  "pinnedComment": "Professional engaging pinned comment encouraging viewers to interact"
-}
+DESCRIPTION:
+[Professional YouTube description]
 
-Requirements:
-- Make the title clickable but not misleading.
-- Keep the description natural and professional.
-- Provide exactly 30 tags.
-- Provide exactly 10 hashtags.
-- Provide exactly 20 keywords.
-- Thumbnail text must be short and highly readable.
-- Pinned comment should encourage comments and engagement.
-- Avoid keyword stuffing.
-- Do not use fake claims.
-- Keep everything relevant to the topic.
+TAGS:
+[tag 1, tag 2, tag 3, ...]
+
+HASHTAGS:
+[#hashtag1 #hashtag2 #hashtag3 ...]
+
+KEYWORDS:
+[keyword 1, keyword 2, keyword 3, ...]
+
+THUMBNAIL:
+[Short thumbnail text]
+
+PINNED COMMENT:
+[Professional pinned comment]
+
+Topic:
+$prompt
 ''';
 
-    final response = await OpenAIService.generateText(
-      aiPrompt,
-    );
+    final response = await OpenAIService.generateText(aiPrompt);
 
-    if (_isError(response)) {
-      return SEOResult.empty();
+    if (response.startsWith("ERROR:") ||
+        response.startsWith("❌") ||
+        response.startsWith("⚠️")) {
+      return SEOResult.error(response);
     }
 
     return _parseResponse(response);
   }
 
-  static bool _isError(String response) {
-    return response.startsWith('ERROR:') ||
-        response.startsWith('❌') ||
-        response.startsWith('⚠️');
-  }
-
   static SEOResult _parseResponse(String response) {
-    try {
-      String jsonText = response.trim();
+    final title = _extractSection(
+      response,
+      'TITLE:',
+      'DESCRIPTION:',
+    );
 
-      // Remove Markdown code fences if the model accidentally adds them.
-      if (jsonText.startsWith('```')) {
-        final firstNewLine = jsonText.indexOf('\n');
+    final description = _extractSection(
+      response,
+      'DESCRIPTION:',
+      'TAGS:',
+    );
 
-        if (firstNewLine != -1) {
-          jsonText = jsonText.substring(firstNewLine + 1);
-        }
+    final tags = _extractSection(
+      response,
+      'TAGS:',
+      'HASHTAGS:',
+    );
 
-        if (jsonText.endsWith('```')) {
-          jsonText =
-              jsonText.substring(0, jsonText.length - 3).trim();
-        }
-      }
+    final hashtags = _extractSection(
+      response,
+      'HASHTAGS:',
+      'KEYWORDS:',
+    );
 
-      // Find JSON object if the model adds extra text.
-      final start = jsonText.indexOf('{');
-      final end = jsonText.lastIndexOf('}');
+    final keywords = _extractSection(
+      response,
+      'KEYWORDS:',
+      'THUMBNAIL:',
+    );
 
-      if (start == -1 || end == -1 || end <= start) {
-        return SEOResult.empty();
-      }
+    final thumbnailText = _extractSection(
+      response,
+      'THUMBNAIL:',
+      'PINNED COMMENT:',
+    );
 
-      jsonText = jsonText.substring(start, end + 1);
+    final pinnedComment = _extractSection(
+      response,
+      'PINNED COMMENT:',
+      null,
+    );
 
-      final decoded = jsonDecode(jsonText);
-
-      if (decoded is! Map<String, dynamic>) {
-        return SEOResult.empty();
-      }
-
-      return SEOResult(
-        title: _stringValue(decoded['title']),
-        description: _stringValue(decoded['description']),
-        tags: _stringValue(decoded['tags']),
-        hashtags: _stringValue(decoded['hashtags']),
-        keywords: _stringValue(decoded['keywords']),
-        thumbnailText: _stringValue(
-          decoded['thumbnailText'],
-        ),
-        pinnedComment: _stringValue(
-          decoded['pinnedComment'],
-        ),
+    if (title.isEmpty &&
+        description.isEmpty &&
+        tags.isEmpty &&
+        hashtags.isEmpty &&
+        keywords.isEmpty &&
+        thumbnailText.isEmpty &&
+        pinnedComment.isEmpty) {
+      return SEOResult.error(
+        "⚠️ Unable to read the SEO response. Please try again.",
       );
-    } catch (_) {
-      return SEOResult.empty();
     }
+
+    return SEOResult(
+      title: title,
+      description: description,
+      tags: tags,
+      hashtags: hashtags,
+      keywords: keywords,
+      thumbnailText: thumbnailText,
+      pinnedComment: pinnedComment,
+    );
   }
 
-  static String _stringValue(dynamic value) {
-    if (value == null) {
-      return '';
+  static String _extractSection(
+      String text,
+      String startLabel,
+      String? endLabel,
+      ) {
+    final startIndex = text.toUpperCase().indexOf(
+      startLabel.toUpperCase(),
+    );
+
+    if (startIndex == -1) {
+      return "";
     }
 
-    return value.toString().trim();
+    final contentStart = startIndex + startLabel.length;
+
+    if (endLabel == null) {
+      return text.substring(contentStart).trim();
+    }
+
+    final endIndex = text.toUpperCase().indexOf(
+      endLabel.toUpperCase(),
+      contentStart,
+    );
+
+    if (endIndex == -1) {
+      return text.substring(contentStart).trim();
+    }
+
+    return text
+        .substring(contentStart, endIndex)
+        .trim();
   }
 }

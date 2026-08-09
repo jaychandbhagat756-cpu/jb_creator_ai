@@ -23,8 +23,7 @@ class SEOResultCard extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
-          crossAxisAlignment:
-          CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               title,
@@ -52,47 +51,46 @@ class SEOResultCard extends StatelessWidget {
       return const SizedBox();
     }
 
+    if (result.isError) {
+      return Card(
+        margin: const EdgeInsets.all(16),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(
+                Icons.error_outline,
+                color: Colors.red,
+                size: 28,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: SelectableText(
+                  result.error,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Padding(
-      padding:
-      const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(16),
       child: Column(
         children: [
-
-          _section(
-            "SEO Title",
-            result.title,
-          ),
-
-          _section(
-            "Description",
-            result.description,
-          ),
-
-          _section(
-            "Tags",
-            result.tags,
-          ),
-
-          _section(
-            "Hashtags",
-            result.hashtags,
-          ),
-
-          _section(
-            "Keywords",
-            result.keywords,
-          ),
-
-          _section(
-            "Thumbnail Text",
-            result.thumbnailText,
-          ),
-
-          _section(
-            "Pinned Comment",
-            result.pinnedComment,
-          ),
-
+          _section("SEO Title", result.title),
+          _section("Description", result.description),
+          _section("Tags", result.tags),
+          _section("Hashtags", result.hashtags),
+          _section("Keywords", result.keywords),
+          _section("Thumbnail Text", result.thumbnailText),
+          _section("Pinned Comment", result.pinnedComment),
         ],
       ),
     );

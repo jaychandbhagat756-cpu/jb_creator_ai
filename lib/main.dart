@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -41,7 +41,7 @@ Future<void> main() async {
   }
 
   // Open Hive Boxes
-  await Hive.openBox('history');
+  await Hive.openBox<PromptModel>('history');
   await Hive.openBox<ProjectModel>('projects');
 
   runApp(
