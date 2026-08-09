@@ -122,6 +122,20 @@ class _ImageGeneratorScreenState
     }
   }
 
+  void _openFullScreenPreview() {
+    final url = imageUrl;
+    if (url == null || url.isEmpty) return;
+
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (_) => _FullScreenImagePreview(
+          imageUrl: url,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -244,9 +258,7 @@ class _ImageGeneratorScreenState
             // 🎯 इमेज डिस्प्ले और एक्शन बटन्स
             if (imageUrl != null) ...[
               GestureDetector(
-                onTap: () {
-                  // TODO: Full Screen Preview Navigation
-                },
+                onTap: () => _openFullScreenPreview(),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(16),
                   child: SizedBox(
@@ -419,6 +431,61 @@ class _ImageGeneratorScreenState
               ),
             ],
           ],
+        ),
+      ),
+    );
+  }
+}
+
+
+class _FullScreenImagePreview extends StatelessWidget {
+  final String imageUrl;
+
+  const _FullScreenImagePreview({
+    required this.imageUrl,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        foregroundColor: Colors.white,
+        elevation: 0,
+        title: const Text('Image Preview'),
+        actions: [
+          IconButton(
+            tooltip: 'Close',
+            icon: const Icon(Icons.close),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+        ],
+      ),
+      body: SafeArea(
+        child: InteractiveViewer(
+          minScale: 0.5,
+          maxScale: 4.0,
+          boundaryMargin: const EdgeInsets.all(40),
+          child: Center(
+            child: CachedNetworkImage(
+              imageUrl: imageUrl,
+              cacheKey: imageUrl,
+              fit: BoxFit.contain,
+              placeholder: (context, url) => const Center(
+                child: CircularProgressIndicator(
+                  color: Colors.white,
+                ),
+              ),
+              errorWidget: (context, url, error) => const Center(
+                child: Icon(
+                  Icons.broken_image_outlined,
+                  color: Colors.white70,
+                  size: 64,
+                ),
+              ),
+            ),
+          ),
         ),
       ),
     );
