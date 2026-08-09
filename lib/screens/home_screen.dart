@@ -18,6 +18,7 @@ import 'all_projects_screen.dart'; // 🎯 "View All" के लिए इम्
 import 'image_prompt_screen.dart';
 import 'ai_video_screen.dart';
 import 'ai_script_screen.dart';
+import 'notifications_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -148,11 +149,12 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         actions: [
           IconButton(
+            tooltip: "Notifications",
             onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text("Notifications coming soon"),
-                  duration: Duration(seconds: 2),
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const NotificationsScreen(),
                 ),
               );
             },
